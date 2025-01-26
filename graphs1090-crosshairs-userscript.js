@@ -1,9 +1,11 @@
 // ==UserScript==
 // @name         Crosshairs for Graphs1090 (with Cursor and Extend Toggles)
-// @namespace    http://tampermonkey.net/
+// @namespace    https://github.com/brianmcentire
 // @version      1.5
 // @description  Add crosshairs to graphs with toggle buttons for cursor and extend mode
 // @author       Brian McEntire
+// @homepage     https://github.com/brianmcentire/graphs1090-crosshairs-userscript
+// @license      MIT
 // @match        *://*/graphs1090/*
 // @match        *://*/*/graphs1090/*
 // @grant        none
