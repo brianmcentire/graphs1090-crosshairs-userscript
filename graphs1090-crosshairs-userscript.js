@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Crosshairs for Graphs (Main and Individual Pages with Toggle)
+// @name         Crosshairs for Graphs1090 (with Cursor and Extend Toggles)
 // @namespace    http://tampermonkey.net/
-// @version      1.3
-// @description  Add crosshairs to graphs with a toggle button for both main and individual graph pages
+// @version      1.5
+// @description  Add crosshairs to graphs with toggle buttons for cursor and extend mode
 // @author       Brian McEntire
 // @match        *://*/graphs1090/*
 // @match        *://*/*/graphs1090/*
@@ -12,162 +12,186 @@
 (function () {
     'use strict';
 
-    // State variable to track whether crosshairs are enabled
-    let crosshairsEnabled = true;
+    const COLORS = {
+        LIGHT: 'black',
+        DARK: 'white',
+        EXTEND: 'yellow'
+    };
 
-    // Create the toggle button
-    const toggleButton = document.createElement('button');
-    toggleButton.id = 'btn-cursor-plus';
-    toggleButton.className = 'btn btn-default btn-sm active'; // Default to "active" (on state)
-    toggleButton.textContent = 'Cursor: On';
+    class CrosshairManager {
+        constructor() {
+            this.state = {
+                crosshairsEnabled: true,
+                extendEnabled: false
+            };
 
-    // Add event listener for toggling crosshairs
-    toggleButton.addEventListener('click', () => {
-        crosshairsEnabled = !crosshairsEnabled;
-        toggleButton.textContent = crosshairsEnabled ? 'Cursor: On' : 'Cursor: Off';
-        toggleButton.classList.toggle('active', crosshairsEnabled); // Add/remove "active" class
-    });
+            this.elements = {
+                cursorVT: this.createCrosshairElement('vertical'),
+                cursorHL: this.createCrosshairElement('horizontal')
+            };
 
-    // Add the toggle button to the button group
-    const buttonGroup = document.querySelector('.btn-group');
-    if (buttonGroup) {
-        buttonGroup.insertBefore(toggleButton, buttonGroup.firstChild);
-    }
+            this.buttons = {
+                cursor: this.createButton('cursor-plus', 'Cursor', true),
+                extend: this.createButton('extend', 'Extend', false)
+            };
 
-    // Create crosshair elements
-    const cursorVT = document.createElement('div');
-    const cursorHL = document.createElement('div');
+            this.initializeButtons();
+            this.setupEventListeners();
+        }
 
-    // Base styles for crosshair lines
-    const lineStyle = `
-        position: absolute;
-        z-index: 9999;
-        pointer-events: none;
-    `;
-    cursorVT.style.cssText = `${lineStyle} width: 1px; background: black; top: 0; bottom: 0;`;
-    cursorHL.style.cssText = `${lineStyle} height: 1px; background: black; left: 0; right: 0;`;
+        createCrosshairElement(type) {
+            const element = document.createElement('div');
+            const isVertical = type === 'vertical';
+            element.style.cssText = `
+                position: fixed;
+                z-index: 9999;
+                pointer-events: none;
+                ${isVertical ? 'width: 1px' : 'height: 1px'};
+                background: black;
+                ${isVertical ? 'top: 0; bottom: 0' : 'left: 0; right: 0'};
+            `;
+            document.body.appendChild(element);
+            return element;
+        }
 
-    // Add lines to the document body
-    document.body.appendChild(cursorVT);
-    document.body.appendChild(cursorHL);
+        createButton(id, label, isActive) {
+            const button = document.createElement('button');
+            button.id = `btn-${id}`;
+            button.className = `btn btn-default btn-sm${isActive ? ' active' : ''}`;
+            button.textContent = `${label}: ${isActive ? 'On' : 'Off'}`;
+            return button;
+        }
 
-    // Determine if this is the main page or an individual graph page
-    const graphs = document.querySelectorAll('img');
-    if (graphs.length > 1) {
-        // Main page logic
-        document.addEventListener('mousemove', (e) => {
-            if (!crosshairsEnabled) {
-                cursorVT.style.display = 'none';
-                cursorHL.style.display = 'none';
+        initializeButtons() {
+            const buttonGroup = document.querySelector('.btn-group');
+            if (buttonGroup) {
+                buttonGroup.insertBefore(this.buttons.extend, buttonGroup.firstChild);
+                buttonGroup.insertBefore(this.buttons.cursor, buttonGroup.firstChild);
+            }
+        }
+
+        setupEventListeners() {
+            this.buttons.cursor.addEventListener('click', () => this.toggleCursor());
+            this.buttons.extend.addEventListener('click', () => this.toggleExtend());
+            document.addEventListener('mousemove', (e) => this.handleMouseMove(e));
+        }
+
+        toggleCursor() {
+            this.state.crosshairsEnabled = !this.state.crosshairsEnabled;
+            this.updateButtonState(this.buttons.cursor, 'Cursor', this.state.crosshairsEnabled);
+        }
+
+        toggleExtend() {
+            this.state.extendEnabled = !this.state.extendEnabled;
+            this.updateButtonState(this.buttons.extend, 'Extend', this.state.extendEnabled);
+        }
+
+        updateButtonState(button, label, isActive) {
+            button.textContent = `${label}: ${isActive ? 'On' : 'Off'}`;
+            button.classList.toggle('active', isActive);
+        }
+
+        handleMouseMove(e) {
+            if (!this.state.crosshairsEnabled) {
+                this.hideCrosshairs();
                 return;
             }
 
-            const graph = getGraphUnderCursor(e.pageX, e.pageY);
-
-            if (graph) {
-                const rect = graph.getBoundingClientRect();
-                const scrollTop = window.scrollY || document.documentElement.scrollTop;
-                const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
-
-                // Set crosshair position and dimensions relative to the graph
-                cursorVT.style.left = `${Math.max(rect.left + scrollLeft, Math.min(rect.right + scrollLeft, e.pageX))}px`;
-                cursorVT.style.top = `${rect.top + scrollTop}px`;
-                cursorVT.style.height = `${rect.height}px`;
-
-                cursorHL.style.top = `${Math.max(rect.top + scrollTop, Math.min(rect.bottom + scrollTop, e.pageY))}px`;
-                cursorHL.style.left = `${rect.left + scrollLeft}px`;
-                cursorHL.style.width = `${rect.width}px`;
-
-                // Detect background color and adjust line color
-                const bgColor = getBackgroundColor(graph);
-                const isDark = isDarkColor(bgColor);
-                const lineColor = isDark ? 'white' : 'black';
-
-                cursorVT.style.backgroundColor = lineColor;
-                cursorHL.style.backgroundColor = lineColor;
-
-                cursorVT.style.display = 'block';
-                cursorHL.style.display = 'block';
+            if (this.state.extendEnabled) {
+                this.showExtendedCrosshairs(e);
             } else {
-                cursorVT.style.display = 'none';
-                cursorHL.style.display = 'none';
+                this.showGraphCrosshairs(e);
             }
-        });
-    } else if (graphs.length === 1) {
-        // Individual graph page logic
-        const graph = graphs[0];
-        document.addEventListener('mousemove', (e) => {
-            if (!crosshairsEnabled) {
-                cursorVT.style.display = 'none';
-                cursorHL.style.display = 'none';
+        }
+
+        showExtendedCrosshairs(e) {
+            const { cursorVT, cursorHL } = this.elements;
+
+            cursorVT.style.cssText = `
+                ${cursorVT.style.cssText};
+                left: ${e.clientX}px;
+                top: 0px;
+                height: ${window.innerHeight}px;
+                background-color: ${COLORS.EXTEND};
+                display: block;
+            `;
+
+            cursorHL.style.cssText = `
+                ${cursorHL.style.cssText};
+                top: ${e.clientY}px;
+                left: 0px;
+                width: ${window.innerWidth}px;
+                background-color: ${COLORS.EXTEND};
+                display: block;
+            `;
+        }
+
+        showGraphCrosshairs(e) {
+            const graphs = document.querySelectorAll('img');
+            const isSingleGraphPage = graphs.length === 1 && graphs[0].getAttribute('style')?.includes('cursor: zoom-in');
+            const graph = isSingleGraphPage ? graphs[0] : this.getGraphUnderCursor(e.pageX, e.pageY);
+
+            if (!graph) {
+                this.hideCrosshairs();
                 return;
             }
 
             const rect = graph.getBoundingClientRect();
-            const scrollTop = window.scrollY || document.documentElement.scrollTop;
-            const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
+            const lineColor = isSingleGraphPage ? COLORS.EXTEND : this.getLineColor(graph);
 
-            if (
-                e.pageX >= rect.left + scrollLeft &&
-                e.pageX <= rect.right + scrollLeft &&
-                e.pageY >= rect.top + scrollTop &&
-                e.pageY <= rect.bottom + scrollTop
-            ) {
-                // Update vertical line position
-                cursorVT.style.left = `${e.pageX}px`;
-                cursorVT.style.top = `${rect.top + scrollTop}px`;
-                cursorVT.style.height = `${rect.height}px`;
-
-                // Update horizontal line position
-                cursorHL.style.top = `${e.pageY}px`;
-                cursorHL.style.left = `${rect.left + scrollLeft}px`;
-                cursorHL.style.width = `${rect.width}px`;
-
-                // Use a fixed yellow color for individual graph pages
-                const lineColor = 'yellow';
-                cursorVT.style.backgroundColor = lineColor;
-                cursorHL.style.backgroundColor = lineColor;
-
-                cursorVT.style.display = 'block';
-                cursorHL.style.display = 'block';
-            } else {
-                cursorVT.style.display = 'none';
-                cursorHL.style.display = 'none';
-            }
-        });
-    }
-
-    // Helper function: Get the graph under the mouse cursor (for the main page)
-    function getGraphUnderCursor(x, y) {
-        for (const el of document.querySelectorAll('img.img-responsive')) {
-            if (!el.src || el.offsetParent === null) continue; // Skip hidden or empty-src images
-
-            const rect = el.getBoundingClientRect();
-            const scrollTop = window.scrollY || document.documentElement.scrollTop;
-            const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
-
-            if (
-                x >= rect.left + scrollLeft &&
-                x <= rect.right + scrollLeft &&
-                y >= rect.top + scrollTop &&
-                y <= rect.bottom + scrollTop
-            ) {
-                return el;
-            }
+            this.updateCrosshairPosition(rect, e.clientX, e.clientY, lineColor);
         }
-        return null;
+
+        getLineColor(graph) {
+            const bgColor = window.getComputedStyle(graph).backgroundColor || 'rgb(255, 255, 255)';
+            const rgb = bgColor.match(/\d+/g).map(Number);
+            const brightness = (rgb[0] * 299 + rgb[1] * 587 + rgb[2] * 114) / 1000;
+            return brightness < 128 ? COLORS.DARK : COLORS.LIGHT;
+        }
+
+        updateCrosshairPosition(rect, clientX, clientY, color) {
+            const { cursorVT, cursorHL } = this.elements;
+            cursorVT.style.cssText = `
+                ${cursorVT.style.cssText};
+                left: ${Math.max(rect.left, Math.min(rect.right, clientX))}px;
+                top: ${rect.top}px;
+                height: ${rect.height}px;
+                background-color: ${color};
+                display: block;
+            `;
+
+            cursorHL.style.cssText = `
+                ${cursorHL.style.cssText};
+                top: ${Math.max(rect.top, Math.min(rect.bottom, clientY))}px;
+                left: ${rect.left}px;
+                width: ${rect.width}px;
+                background-color: ${color};
+                display: block;
+            `;
+        }
+
+        getGraphUnderCursor(x, y) {
+            for (const el of document.querySelectorAll('img.img-responsive')) {
+                if (!el.src || el.offsetParent === null) continue;
+                const rect = el.getBoundingClientRect();
+                if (
+                    x >= rect.left + window.scrollX &&
+                    x <= rect.right + window.scrollX &&
+                    y >= rect.top + window.scrollY &&
+                    y <= rect.bottom + window.scrollY
+                ) {
+                    return el;
+                }
+            }
+            return null;
+        }
+
+        hideCrosshairs() {
+            this.elements.cursorVT.style.display = 'none';
+            this.elements.cursorHL.style.display = 'none';
+        }
     }
 
-    // Helper function: Get computed background color of an element
-    function getBackgroundColor(el) {
-        const style = window.getComputedStyle(el);
-        return style.backgroundColor || 'rgb(255, 255, 255)'; // Default to white
-    }
-
-    // Helper function: Determine if a color is dark
-    function isDarkColor(color) {
-        const rgb = color.match(/\d+/g).map(Number);
-        const brightness = (rgb[0] * 299 + rgb[1] * 587 + rgb[2] * 114) / 1000; // Perceived brightness formula
-        return brightness < 128; // Threshold for dark vs. light
-    }
+    // Initialize the crosshair manager when the script loads
+    new CrosshairManager();
 })();
