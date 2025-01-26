@@ -6,6 +6,10 @@ A userscript that enhances the Graphs1090 interface by adding crosshairs to grap
 
 ![Demo](assets/Demo-Add_Crosshairs_to_Graphs1090.gif)
 
+## Extended Crosshairs Option
+The latest version has a toggle button to extend the crosshairs across the whole page to compare points in graphs above/below or to either side.
+(assets/crosshairs-extended-on-graphs1090.png)
+
 ## Installation
 
 1. Install [Tampermonkey](https://www.tampermonkey.net/) for your browser.
