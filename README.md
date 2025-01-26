@@ -2,6 +2,10 @@
 
 A userscript that enhances the Graphs1090 interface by adding crosshairs to graphs with a toggle button for both the main and individual graph pages.
 
+## Demo
+
+![Demo](Demo-Add_Crosshairs_to_Graphs1090.gif)
+
 ## Installation
 
 1. Install [Tampermonkey](https://www.tampermonkey.net/) for your browser.
