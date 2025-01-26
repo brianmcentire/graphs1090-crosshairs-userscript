@@ -8,7 +8,7 @@ A userscript that enhances the Graphs1090 interface by adding crosshairs to grap
 
 ## Extended Crosshairs Option
 The latest version has a toggle button to extend the crosshairs across the whole page to compare points in graphs above/below or to either side.
-(assets/crosshairs-extended-on-graphs1090.png)
+![Extended Crosshairs](assets/crosshairs-extended-on-graphs1090.png)
 
 ## Installation
 
