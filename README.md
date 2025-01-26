@@ -13,7 +13,7 @@ The latest version has a toggle button to extend the crosshairs across the whole
 ## Installation
 
 1. Install [Tampermonkey](https://www.tampermonkey.net/) for your browser
-2. [Click here to install with Tampermonkey](https://raw.githubusercontent.com/brianmcentire/graphs1090-crosshairs-userscript/main/graphs1090-crosshairs-userscript.js)
+2. [Click here to install with Tampermonkey](https://raw.githubusercontent.com/brianmcentire/graphs1090-crosshairs-userscript/main/graphs1090-crosshairs.user.js)
 3. Refresh your Graphs1090 page
 
 ## Features
