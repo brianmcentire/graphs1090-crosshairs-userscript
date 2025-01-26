@@ -4,7 +4,7 @@ A userscript that enhances the Graphs1090 interface by adding crosshairs to grap
 
 ## Demo
 
-![Demo](Demo-Add_Crosshairs_to_Graphs1090.gif)
+![Demo](assets/Demo-Add_Crosshairs_to_Graphs1090.gif)
 
 ## Installation
 

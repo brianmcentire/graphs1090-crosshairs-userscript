@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Crosshairs for Graphs (Main and Individual Pages with Toggle)
 // @namespace    http://tampermonkey.net/
-// @version      1.7
+// @version      1.3
 // @description  Add crosshairs to graphs with a toggle button for both main and individual graph pages
 // @author       Brian McEntire
 // @match        *://*/graphs1090/*
